@@ -1,10 +1,11 @@
 package DBIx::Class::EasyFixture;
 
-our $VERSION = '0.01';
+use 5.008003;
 use Moose;
 use Carp;
 use aliased 'DBIx::Class::EasyFixture::Definition';
 use namespace::autoclean;
+our $VERSION = '0.02';
 
 has 'schema' => (
     is       => 'ro',
@@ -29,6 +30,14 @@ has '_cache' => (
         fixture_loaded => 'exists',
     },
 );
+
+sub BUILD {
+    my $self = shift;
+
+    # Creating a definition object validates them, so this tells us at
+    # construction time if all fixtures are valid.
+    $self->_get_definition_object($_) foreach $self->all_fixture_names;
+}
 
 sub load {
     my ( $self, @fixtures ) = @_;
@@ -226,7 +235,10 @@ fixtures for tests.
         schema => $dbix_class_schema_instance,
     });
 
-This creates and returns a new instance of your C<DBIx::Class::EasyFixture> subclass.
+This creates and returns a new instance of your C<DBIx::Class::EasyFixture>
+subclass. All fixture definitions are validated at this time and the
+constructor will C<croak()> with a useful error message upon validation
+failure.
 
 =head2 C<all_fixture_names>
 
@@ -303,7 +315,7 @@ order).  This makes for better error reporting.
 
 Please report any bugs or feature requests to C<bug-dbix-class-simplefixture
 at rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=DBIx-Class-EasyFixture>.  I
+L<https://github.com/Ovid/dbix-class-easyfixture/issues>.  I
 will be notified, and then you'll automatically be notified of progress on
 your bug as I make changes.
 
@@ -312,6 +324,7 @@ your bug as I make changes.
 You can find documentation for this module with the perldoc command.
 
     perldoc DBIx::Class::EasyFixture
+    perldoc DBIx::Class::EasyFixture::Tutorial
 
 You can also look for information at:
 
@@ -319,7 +332,7 @@ You can also look for information at:
 
 =item * RT: CPAN's request tracker (report bugs here)
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=DBIx-Class-EasyFixture>
+L<https://github.com/Ovid/dbix-class-easyfixture/issues>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
