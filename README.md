@@ -4,7 +4,7 @@ DBIx::Class::EasyFixture - Easy-to-use DBIx::Class fixtures.
 
 # VERSION
 
-Version 0.01
+Version 0.03
 
 # SYNOPSIS
 
@@ -17,8 +17,8 @@ Version 0.01
 
 And in your test code:
 
-    my $fixtures = My::Fixtures->new( { schema => $schema } );
-    $fixtures->load('some_fixture');
+    my $fixtures    = My::Fixtures->new( { schema => $schema } );
+    my $dbic_object = $fixtures->load('some_fixture');
 
     # run your tests
 
@@ -28,6 +28,9 @@ Note that `unload` will be called for you if your fixture object falls out of
 scope.
 
 # DESCRIPTION
+
+The latest version of this is always at
+[https://github.com/Ovid/dbix-class-easyfixture](https://github.com/Ovid/dbix-class-easyfixture).
 
 This is `ALPHA` code. Documentation is on its way, including a tutorial. For
 now, you'll have to read the tests. You can read `t/lib/My/Fixtures.pm` to
@@ -79,11 +82,12 @@ versions).
 
 ## `load`
 
-    $fixtures->load(@list_of_fixture_names);
+    my @dbic_objects = $fixtures->load(@list_of_fixture_names);
 
 Attempts to load all fixtures passed to it. If a transaction has not already
 been started, it will be started now. This method may be called multiple
-times.
+times and it returns the fixtures loaded. If called in scalar context, only
+returns the first fixture loaded.
 
 ## `unload`
 
@@ -99,6 +103,168 @@ Rolls back the transaction started with `load`
 
 Returns a boolean value indicating whether or not the given fixture was
 loaded.
+
+# FIXTURES
+
+If the following is unclear, see [DBIx::Class::EasyFixture::Tutorial](https://metacpan.org/pod/DBIx::Class::EasyFixture::Tutorial).
+
+The `get_definition($fixture_name)` method must always return a fixture
+definition. The definition must be either a fixture group or a fixture
+builder.
+
+A fixture group is an array reference containing a list of fixture names. For
+example, `$fixture->get_definition('all_people')` might return:
+
+    [qw/ person_1 person_2 person_2 /]
+
+A fixture builder must return a hash reference with the one or more of the
+following keys:
+
+- `new` (required)
+
+    A `DBIx::Class` result source name.
+
+        {
+            new   => 'Person',
+            using => {
+                name  => 'Bob',
+                email => 'bob@example.com',
+            }
+        }
+
+    Internally, the above will do something similar to this:
+
+        $schema->resultset($definition->{name})
+               ->create($definition->{using});
+
+- `using` (required)
+
+    A hashref of key/value pairs that will be used to create the `DBIx::Class`
+    result source referred to by the `new` key.
+
+        {
+            new   => 'Person',
+            using => {
+                name  => 'Bob',
+                email => 'bob@example.com',
+            }
+        }
+
+- `next` (optional)
+
+    If present, this must point to an array reference of fixture names (in other
+    words, a fixture group). These fixtures will then be built _after_ the
+    current fixture is built.
+
+        {
+            new   => 'Person',
+            using => {
+                name  => 'Bob',
+                email => 'bob@example.com',
+            },
+            next => [@list_of_fixture_names],
+        }
+
+- `requires` (optional)
+
+    Must point to either a scalar of an attribute name or a hash mapping of
+    attribute names.
+
+    Many fixtures require data from another fixture. For example, a customer might
+    require a person object being built and the following won't work:
+
+        {
+            new   => 'Customer',
+            using => {
+                first_purchase => $datetime_object,
+                person_id      => 'some_person.person_id',
+            }
+        }
+
+    Assuming we already have a `Person` fixture defined and it's named
+    `some_person` and its ID is named `id`, we can do this:
+
+        {
+            new      => 'Customer',
+            using    => { first_purchase => $datetime_object },
+            requires => {
+                some_person => {
+                    our   => 'person_id',
+                    their => 'id',
+                },
+            },
+        }
+
+    If you prefer, you can _inline_ the `requires` into the `using` key. You
+    may find this syntax cleaner:
+
+        {
+            new      => 'Customer',
+            using    => {
+                first_purchase => $datetime_object,
+                person_id      => { some_person => 'id' },
+            },
+        }
+
+    The `our` key refers to the attribute for the `Customer` fixture and the
+    `their` key refers to the attribute of the `Person` fixture. As a
+    convenience, if both attributes have the same name, you can omit that hashref
+    and just use the attribute name:
+
+        {
+            new      => 'Customer',
+            using    => { first_purchase => $datetime_object },
+            requires => {
+                some_person => 'person_id',
+            },
+        }
+
+    And multiple `requires` can be specified:
+
+        {
+            new      => 'Customer',
+            using    => { first_purchase => $datetime_object },
+            requires => {
+                some_person     => 'person_id',
+                primary_contact => 'contact_id',
+            },
+        }
+
+    Or you can skip the `requires` block entirely and write the above like this
+    (which is now the preferred syntax, but whatever floats your boat):
+
+        {
+            new      => 'Customer',
+            using    => {
+                first_purchase => $datetime_object,
+                person_id      => { some_person     => 'person_id' },
+                contact_id     => { primary_contact => 'contact_id' },
+            },
+        }
+
+    If both the current fixture and the other fixture it requires have the same
+    name for the attribute, a reference to the other fixture name (scalar
+    reference) will suffice:
+
+        {
+            new      => 'Customer',
+            using    => {
+                first_purchase => $datetime_object,
+                person_id      => \'some_person',
+                contact_id     => \'primary_contact',
+            },
+        }
+    The above will construct the fixture like this:
+
+        $schema->resultset('Customer')->create({
+            first_purchase  => $datetime_object,
+            person_id       => $person->person_id,
+            primary_contact => $contact->contact_id,
+        });
+
+When writing a fixture builder, remember that `requires` are always built
+before the current fixture and `next` is also built after the current
+fixture.
 
 # TUTORIAL
 

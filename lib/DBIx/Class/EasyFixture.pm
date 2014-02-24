@@ -5,7 +5,7 @@ use Moose;
 use Carp;
 use aliased 'DBIx::Class::EasyFixture::Definition';
 use namespace::autoclean;
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 has 'schema' => (
     is       => 'ro',
@@ -45,16 +45,19 @@ sub load {
         $self->schema->txn_begin;
         $self->_set_in_transaction(1);
     }
+    my @dbic_objects;
     foreach my $fixture (@fixtures) {
         my $definition = $self->_get_definition_object($fixture);
         if ( my $group = $definition->group ) {
-            $self->load(@$group);
+            push @dbic_objects => $self->load(@$group);
         }
         else {
-            $self->_load($definition);
+            push @dbic_objects => $self->_load($definition);
         }
     }
-    return 1;
+    return 1 if not defined wantarray or not @dbic_objects;
+    return $dbic_objects[0] if not wantarray;
+    return @dbic_objects;
 }
 
 sub _get_definition_object {
@@ -191,7 +194,7 @@ DBIx::Class::EasyFixture - Easy-to-use DBIx::Class fixtures.
 
 =head1 VERSION
 
-Version 0.01
+Version 0.03
 
 =head1 SYNOPSIS
 
@@ -204,8 +207,8 @@ Version 0.01
 
 And in your test code:
 
-    my $fixtures = My::Fixtures->new( { schema => $schema } );
-    $fixtures->load('some_fixture');
+    my $fixtures    = My::Fixtures->new( { schema => $schema } );
+    my $dbic_object = $fixtures->load('some_fixture');
 
     # run your tests
 
@@ -215,6 +218,9 @@ Note that C<unload> will be called for you if your fixture object falls out of
 scope.
 
 =head1 DESCRIPTION
+
+The latest version of this is always at
+L<https://github.com/Ovid/dbix-class-easyfixture>.
 
 This is C<ALPHA> code. Documentation is on its way, including a tutorial. For
 now, you'll have to read the tests. You can read F<t/lib/My/Fixtures.pm> to
@@ -266,11 +272,12 @@ versions).
 
 =head2 C<load>
 
-    $fixtures->load(@list_of_fixture_names);
+    my @dbic_objects = $fixtures->load(@list_of_fixture_names);
 
 Attempts to load all fixtures passed to it. If a transaction has not already
 been started, it will be started now. This method may be called multiple
-times.
+times and it returns the fixtures loaded. If called in scalar context, only
+returns the first fixture loaded.
 
 =head2 C<unload>
 
@@ -286,6 +293,172 @@ Rolls back the transaction started with C<load>
 
 Returns a boolean value indicating whether or not the given fixture was
 loaded.
+
+=head1 FIXTURES
+
+If the following is unclear, see L<DBIx::Class::EasyFixture::Tutorial>.
+
+The C<get_definition($fixture_name)> method must always return a fixture
+definition. The definition must be either a fixture group or a fixture
+builder.
+
+A fixture group is an array reference containing a list of fixture names. For
+example, C<< $fixture->get_definition('all_people') >> might return:
+
+    [qw/ person_1 person_2 person_2 /]
+
+A fixture builder must return a hash reference with the one or more of the
+following keys:
+
+=over 4
+
+=item * C<new> (required)
+
+A C<DBIx::Class> result source name.
+
+    {
+        new   => 'Person',
+        using => {
+            name  => 'Bob',
+            email => 'bob@example.com',
+        }
+    }
+
+Internally, the above will do something similar to this:
+
+    $schema->resultset($definition->{name})
+           ->create($definition->{using});
+
+=item * C<using> (required)
+
+A hashref of key/value pairs that will be used to create the C<DBIx::Class>
+result source referred to by the C<new> key.
+
+    {
+        new   => 'Person',
+        using => {
+            name  => 'Bob',
+            email => 'bob@example.com',
+        }
+    }
+
+=item * C<next> (optional)
+
+If present, this must point to an array reference of fixture names (in other
+words, a fixture group). These fixtures will then be built I<after> the
+current fixture is built.
+
+    {
+        new   => 'Person',
+        using => {
+            name  => 'Bob',
+            email => 'bob@example.com',
+        },
+        next => [@list_of_fixture_names],
+    }
+
+=item * C<requires> (optional)
+
+Must point to either a scalar of an attribute name or a hash mapping of
+attribute names.
+
+Many fixtures require data from another fixture. For example, a customer might
+require a person object being built and the following won't work:
+
+    {
+        new   => 'Customer',
+        using => {
+            first_purchase => $datetime_object,
+            person_id      => 'some_person.person_id',
+        }
+    }
+
+Assuming we already have a C<Person> fixture defined and it's named
+C<some_person> and its ID is named C<id>, we can do this:
+
+    {
+        new      => 'Customer',
+        using    => { first_purchase => $datetime_object },
+        requires => {
+            some_person => {
+                our   => 'person_id',
+                their => 'id',
+            },
+        },
+    }
+
+If you prefer, you can I<inline> the C<requires> into the C<using> key. You
+may find this syntax cleaner:
+
+    {
+        new      => 'Customer',
+        using    => {
+            first_purchase => $datetime_object,
+            person_id      => { some_person => 'id' },
+        },
+    }
+
+The C<our> key refers to the attribute for the C<Customer> fixture and the
+C<their> key refers to the attribute of the C<Person> fixture. As a
+convenience, if both attributes have the same name, you can omit that hashref
+and just use the attribute name:
+
+    {
+        new      => 'Customer',
+        using    => { first_purchase => $datetime_object },
+        requires => {
+            some_person => 'person_id',
+        },
+    }
+
+And multiple C<requires> can be specified:
+
+    {
+        new      => 'Customer',
+        using    => { first_purchase => $datetime_object },
+        requires => {
+            some_person     => 'person_id',
+            primary_contact => 'contact_id',
+        },
+    }
+
+Or you can skip the C<requires> block entirely and write the above like this
+(which is now the preferred syntax, but whatever floats your boat):
+
+    {
+        new      => 'Customer',
+        using    => {
+            first_purchase => $datetime_object,
+            person_id      => { some_person     => 'person_id' },
+            contact_id     => { primary_contact => 'contact_id' },
+        },
+    }
+
+If both the current fixture and the other fixture it requires have the same
+name for the attribute, a reference to the other fixture name (scalar
+reference) will suffice:
+
+    {
+        new      => 'Customer',
+        using    => {
+            first_purchase => $datetime_object,
+            person_id      => \'some_person',
+            contact_id     => \'primary_contact',
+        },
+    }
+The above will construct the fixture like this:
+
+    $schema->resultset('Customer')->create({
+        first_purchase  => $datetime_object,
+        person_id       => $person->person_id,
+        primary_contact => $contact->contact_id,
+    });
+
+=back
+
+When writing a fixture builder, remember that C<requires> are always built
+before the current fixture and C<next> is also built after the current
+fixture.
 
 =head1 TUTORIAL
 

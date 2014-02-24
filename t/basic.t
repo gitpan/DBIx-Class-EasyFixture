@@ -53,4 +53,19 @@ subtest 'fetching key result' => sub {
       '... and we should no longer find our fixtures';
 };
 
+subtest 'inline attributes' => sub {
+    my @customers = $fixtures->load(qw/
+        customer_inline_require_hashref
+        customer_inline_require_arrayref
+        customer_inline_require_scalar
+    /);
+    
+    is $customers[0]->person->email, 'person2@customer.com',
+        'Fixtures defined with inline hashrefs should work';
+    is $customers[1]->person->email, 'person3@customer.com',
+        'Fixtures defined with inline arrayrefs should work';
+    is $customers[2]->person->email, 'person4@customer.com',
+        'Fixtures defined with inline scalar refs should work';
+};
+
 done_testing;
