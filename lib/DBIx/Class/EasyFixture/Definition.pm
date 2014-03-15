@@ -1,12 +1,13 @@
 package DBIx::Class::EasyFixture::Definition;
+$DBIx::Class::EasyFixture::Definition::VERSION = '0.04';
+# ABSTRACT: Validate fixture definitions
+
 use Moose;
 use Moose::Util::TypeConstraints;
 use Carp;
 use Storable 'dclone';
 use Scalar::Util 'blessed';
 use namespace::autoclean;
-
-our $VERSION = '0.03';
 
 has 'name' => (
     is       => 'ro',
@@ -178,10 +179,31 @@ __PACKAGE__->meta->make_immutable;
 
 __END__
 
+=pod
+
+=encoding UTF-8
+
 =head1 NAME
 
 DBIx::Class::EasyFixture::Definition - Validate fixture definitions
 
+=head1 VERSION
+
+version 0.04
+
 =head2 DESCRIPTION
 
 For internal use only. Maybe I'll document it some day.
+
+=head1 AUTHOR
+
+Curtis "Ovid" Poe <ovid@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2014 by Curtis "Ovid" Poe.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=cut

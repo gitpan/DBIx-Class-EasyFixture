@@ -1,11 +1,12 @@
 package DBIx::Class::EasyFixture;
+$DBIx::Class::EasyFixture::VERSION = '0.04';
+# ABSTRACT: Easy fixtures with DBIx::Class
 
 use 5.008003;
 use Moose;
 use Carp;
 use aliased 'DBIx::Class::EasyFixture::Definition';
 use namespace::autoclean;
-our $VERSION = '0.03';
 
 has 'schema' => (
     is       => 'ro',
@@ -30,6 +31,11 @@ has '_cache' => (
         fixture_loaded => 'exists',
     },
 );
+has 'no_transactions' => (
+    is      => 'ro',
+    isa     => 'Bool',
+    default => 0,
+);
 
 sub BUILD {
     my $self = shift;
@@ -41,7 +47,7 @@ sub BUILD {
 
 sub load {
     my ( $self, @fixtures ) = @_;
-    unless ( $self->_in_transaction ) {
+    if ( not $self->no_transactions and not $self->_in_transaction ) {
         $self->schema->txn_begin;
         $self->_set_in_transaction(1);
     }
@@ -157,7 +163,7 @@ sub _load_next_fixtures {
 
 sub unload {
     my $self = shift;
-    if ( $self->_in_transaction ) {
+    if ( not $self->no_transactions and $self->_in_transaction ) {
         $self->schema->txn_rollback;
         $self->_clear;
         $self->_set_in_transaction(0);
@@ -188,13 +194,17 @@ __PACKAGE__->meta->make_immutable;
 
 __END__
 
+=pod
+
+=encoding UTF-8
+
 =head1 NAME
 
-DBIx::Class::EasyFixture - Easy-to-use DBIx::Class fixtures.
+DBIx::Class::EasyFixture - Easy fixtures with DBIx::Class
 
 =head1 VERSION
 
-Version 0.03
+version 0.04
 
 =head1 SYNOPSIS
 
@@ -293,6 +303,19 @@ Rolls back the transaction started with C<load>
 
 Returns a boolean value indicating whether or not the given fixture was
 loaded.
+
+=head1 TRANSACTIONS
+
+If you attempt to load a fixture, a transaction is started and it will be
+rolled back when you call C<unload()> or when the fixture object falls out of
+scope. If, for some reason, you do not want transactions (for example, if you
+need to controll them manually), you can use a true value with the
+C<no_transactions> argument.
+
+    my $fixtures = My::Fixtures->new(
+        schema          => $schema,
+        no_transactions => 1,
+    );
 
 =head1 FIXTURES
 
@@ -482,91 +505,15 @@ that later when it becomes more clear how to best handle them.
 Track what fixtures are requested and what fixtures are loaded (and in which
 order).  This makes for better error reporting.
 
-=back
+=head1 AUTHOR
 
-=head1 BUGS
+Curtis "Ovid" Poe <ovid@cpan.org>
 
-Please report any bugs or feature requests to C<bug-dbix-class-simplefixture
-at rt.cpan.org>, or through the web interface at
-L<https://github.com/Ovid/dbix-class-easyfixture/issues>.  I
-will be notified, and then you'll automatically be notified of progress on
-your bug as I make changes.
+=head1 COPYRIGHT AND LICENSE
 
-=head1 SUPPORT
+This software is copyright (c) 2014 by Curtis "Ovid" Poe.
 
-You can find documentation for this module with the perldoc command.
-
-    perldoc DBIx::Class::EasyFixture
-    perldoc DBIx::Class::EasyFixture::Tutorial
-
-You can also look for information at:
-
-=over 4
-
-=item * RT: CPAN's request tracker (report bugs here)
-
-L<https://github.com/Ovid/dbix-class-easyfixture/issues>
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/DBIx-Class-EasyFixture>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/DBIx-Class-EasyFixture>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/DBIx-Class-EasyFixture/>
-
-=back
-
-=head1 ACKNOWLEDGEMENTS
-
-Many thanks to L<http://www.allaroundtheworld.fr/> for sponsoring this work.
-
-See also L<http://search.cpan.org/dist/DBIx-Class-Fixtures/>.
-
-=head1 LICENSE AND COPYRIGHT
-
-Copyright 2014 Curtis "Ovid" Poe.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the the Artistic License (2.0). You may obtain a
-copy of the full license at:
-
-L<http://www.perlfoundation.org/artistic_license_2_0>
-
-Any use, modification, and distribution of the Standard or Modified
-Versions is governed by this Artistic License. By using, modifying or
-distributing the Package, you accept this license. Do not use, modify,
-or distribute the Package, if you do not accept this license.
-
-If your Modified Version has been derived from a Modified Version made
-by someone other than you, you are nevertheless required to ensure that
-your Modified Version complies with the requirements of this license.
-
-This license does not grant you the right to use any trademark, service
-mark, tradename, or logo of the Copyright Holder.
-
-This license includes the non-exclusive, worldwide, free-of-charge
-patent license to make, have made, use, offer to sell, sell, import and
-otherwise transfer the Package with respect to any patent claims
-licensable by the Copyright Holder that are necessarily infringed by the
-Package. If you institute patent litigation (including a cross-claim or
-counterclaim) against any party alleging that the Package constitutes
-direct or contributory patent infringement, then this Artistic License
-to you shall terminate on the date that such litigation is filed.
-
-Disclaimer of Warranty: THE PACKAGE IS PROVIDED BY THE COPYRIGHT HOLDER
-AND CONTRIBUTORS "AS IS' AND WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES.
-THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE, OR NON-INFRINGEMENT ARE DISCLAIMED TO THE EXTENT PERMITTED BY
-YOUR LOCAL LAW. UNLESS REQUIRED BY LAW, NO COPYRIGHT HOLDER OR
-CONTRIBUTOR WILL BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, OR
-CONSEQUENTIAL DAMAGES ARISING IN ANY WAY OUT OF THE USE OF THE PACKAGE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
-
-1;
