@@ -1,5 +1,5 @@
 package DBIx::Class::EasyFixture;
-$DBIx::Class::EasyFixture::VERSION = '0.10';
+$DBIx::Class::EasyFixture::VERSION = '0.11';
 # ABSTRACT: Easy fixtures with DBIx::Class
 
 use 5.008003;
@@ -202,7 +202,7 @@ DBIx::Class::EasyFixture - Easy fixtures with DBIx::Class
 
 =head1 VERSION
 
-version 0.10
+version 0.11
 
 =head1 SYNOPSIS
 

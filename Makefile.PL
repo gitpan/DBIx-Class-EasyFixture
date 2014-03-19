@@ -20,16 +20,65 @@ my %WriteMakefileArgs = (
   "EXE_FILES" => [],
   "LICENSE" => "perl",
   "NAME" => "DBIx::Class::EasyFixture",
-  "PREREQ_PM" => {},
-  "TEST_REQUIRES" => {},
-  "VERSION" => "0.10",
+  "PREREQ_PM" => {
+    "Carp" => 0,
+    "DBIx::Class" => "0.08000",
+    "List::MoreUtils" => "0.33",
+    "Moose" => 0,
+    "Moose::Util::TypeConstraints" => 0,
+    "Scalar::Util" => 0,
+    "Storable" => 0,
+    "aliased" => 0,
+    "namespace::autoclean" => 0
+  },
+  "TEST_REQUIRES" => {
+    "Capture::Tiny" => 0,
+    "Carp::Always" => "0.13",
+    "DBD::SQLite" => "1.39",
+    "DBIx::Class::Core" => 0,
+    "DBIx::Class::Schema" => 0,
+    "DateTime" => 0,
+    "DateTime::Format::SQLite" => "0.11",
+    "Test::More" => 0,
+    "Test::Most" => 0,
+    "base" => 0,
+    "lib" => 0,
+    "strict" => 0,
+    "utf8" => 0,
+    "warnings" => 0
+  },
+  "VERSION" => "0.11",
   "test" => {
     "TESTS" => "t/*.t"
   }
 );
 
 
-my %FallbackPrereqs = ();
+my %FallbackPrereqs = (
+  "Capture::Tiny" => 0,
+  "Carp" => 0,
+  "Carp::Always" => "0.13",
+  "DBD::SQLite" => "1.39",
+  "DBIx::Class" => "0.08000",
+  "DBIx::Class::Core" => 0,
+  "DBIx::Class::Schema" => 0,
+  "DateTime" => 0,
+  "DateTime::Format::SQLite" => "0.11",
+  "List::MoreUtils" => "0.33",
+  "Moose" => 0,
+  "Moose::Util::TypeConstraints" => 0,
+  "Scalar::Util" => 0,
+  "Storable" => 0,
+  "Test::More" => 0,
+  "Test::Most" => 0,
+  "aliased" => 0,
+  "base" => 0,
+  "lib" => 0,
+  "namespace::autoclean" => 0,
+  "strict" => 0,
+  "utf8" => 0,
+  "warnings" => 0
+);
 
 
 unless ( eval { ExtUtils::MakeMaker->VERSION(6.63_03) } ) {

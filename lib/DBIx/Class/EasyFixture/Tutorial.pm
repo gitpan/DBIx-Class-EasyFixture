@@ -1,5 +1,5 @@
 package DBIx::Class::EasyFixture::Tutorial;
-$DBIx::Class::EasyFixture::Tutorial::VERSION = '0.10';
+$DBIx::Class::EasyFixture::Tutorial::VERSION = '0.11';
 # ABSTRACT: what it says on the tin
 
 # this is not a .pod file because various repos replace the primary
@@ -19,7 +19,7 @@ DBIx::Class::EasyFixture::Tutorial - what it says on the tin
 
 =head1 VERSION
 
-version 0.10
+version 0.11
 
 =head1 RATIONALE
 

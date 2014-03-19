@@ -1,5 +1,5 @@
 package DBIx::Class::EasyFixture::Definition;
-$DBIx::Class::EasyFixture::Definition::VERSION = '0.10';
+$DBIx::Class::EasyFixture::Definition::VERSION = '0.11';
 # ABSTRACT: Validate fixture definitions
 
 use Moose;
@@ -204,7 +204,7 @@ DBIx::Class::EasyFixture::Definition - Validate fixture definitions
 
 =head1 VERSION
 
-version 0.10
+version 0.11
 
 =head2 DESCRIPTION
 
